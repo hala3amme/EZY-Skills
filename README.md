@@ -20,9 +20,9 @@ This repository is structured as a mono-repo. Today it contains the backend API;
 
 ## Repo structure
 
-- `backend/` — Laravel 12 REST API
-	- `backend/docs/TECHNICAL.md` — technical notes + setup
-	- `backend/docs/postman/EZY-Skills.postman_collection.json` — Postman collection
+- Laravel 12 REST API (this repo root)
+	- `docs/TECHNICAL.md` — technical notes + setup
+	- `docs/postman/EZY-Skills.postman_collection.json` — Postman collection
 
 ## Tech stack
 
@@ -37,7 +37,6 @@ This repository is structured as a mono-repo. Today it contains the backend API;
 ### 1) Install backend dependencies
 
 ```bash
-cd backend
 composer install
 ```
 
@@ -90,7 +89,7 @@ Base API URL: `http://127.0.0.1:8000/api`
 
 ## Postman
 
-- Import: `backend/docs/postman/EZY-Skills.postman_collection.json`
+- Import: `docs/postman/EZY-Skills.postman_collection.json`
 - Collection variables you’ll typically set:
 	- `baseUrl` (example: `http://127.0.0.1:8000`)
 	- `token` (student token)
@@ -99,8 +98,7 @@ Base API URL: `http://127.0.0.1:8000/api`
 
 ## Documentation
 
-- Backend overview and API notes: `backend/README.md`
-- Technical documentation: `backend/docs/TECHNICAL.md`
+- Technical documentation: `docs/TECHNICAL.md`
 
 ## Roadmap ideas (later phases)
 

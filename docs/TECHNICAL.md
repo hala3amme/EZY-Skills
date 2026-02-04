@@ -12,7 +12,6 @@
 ### 1) Install dependencies
 
 ```bash
-cd backend
 composer install
 ```
 
