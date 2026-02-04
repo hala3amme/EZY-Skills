@@ -29,16 +29,25 @@ php artisan ezy:dev-tokens --reset
 5. In Postman → Collection Variables, set:
 
 - `baseUrl` = `http://127.0.0.1:8000`
-- `token` = **student token** (from the command output)
-- `teacherToken` = **teacher token** (from the command output)
-- `courseId` = the printed course id
+
+Token options:
+
+- Option A (recommended): run these requests, and they will store tokens automatically:
+  - Auth → **Login** (stores into `{{token}}`)
+  - Auth → **Login (Teacher)** (stores into `{{teacherToken}}`)
+- Option B: set `token` and `teacherToken` from `php artisan ezy:dev-tokens --reset`
+
+Course id options:
+
+- Run Courses → **List courses** (it auto-stores the first result into `{{courseId}}`)
+- Or set `courseId` from `php artisan ezy:dev-tokens --reset`
 
 After that, you can run requests in this order:
 
 - Courses → **List courses**
 - Courses → **Course details**
 - Enrollments → **Request enrollment (student)**
-- Enrollments → **Teacher enrollments** (copy `enrollmentId`)
+- Enrollments → **Teacher enrollments**
 - Enrollments → **Approve enrollment (teacher)**
 - Courses → **Course content (locked/unlocked)** (now unlocked for the student)
 
@@ -55,15 +64,16 @@ In the Postman collection:
 
 ## 3) IDs used by the collection variables
 
-Some requests require ids that you obtain from earlier responses:
+Some requests require ids that you obtain from earlier responses (and the collection now auto-saves them for you):
 
 - `courseId`
-  - Comes from the seed data or from `php artisan ezy:dev-tokens --reset`
+  - Auto-set by Courses → **List courses**
+  - Or comes from the seed data / `php artisan ezy:dev-tokens --reset`
 - `enrollmentId`
-  - Comes from **Request enrollment (student)** response (`enrollment.id`)
-  - Or from **Teacher enrollments** response (`enrollments[].id`)
+  - Auto-set by Enrollments → **Request enrollment (student)** response (`enrollment.id`)
+  - Also auto-set by Enrollments → **Teacher enrollments** (first item)
 - `notificationId`
-  - Comes from **My notifications** response (`notifications[].id`)
+  - Auto-set by Notifications → **My notifications** (first item)
 
 ## 4) Endpoints and parameters
 
