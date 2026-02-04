@@ -2,6 +2,8 @@
 
 This guide explains how to use the endpoints inside the Postman collection at `docs/postman/EZY-Skills.postman_collection.json`.
 
+For typed clients / codegen, see `openapi.yaml` at the repo root.
+
 ## 1) Quickstart (recommended Postman flow)
 
 1. Start the API:

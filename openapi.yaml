@@ -1,0 +1,984 @@
+openapi: 3.1.0
+info:
+  title: EZY Skills API
+  description: |
+    OpenAPI specification for the EZY Skills Laravel REST API.
+
+    Auth uses Laravel Sanctum personal access tokens.
+    Send the token as: `Authorization: Bearer <token>`.
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000
+    description: Local development
+
+tags:
+  - name: Auth
+  - name: Courses
+  - name: Enrollments
+  - name: Dashboards
+  - name: Notifications
+
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              demo:
+                value:
+                  name: Student One
+                  email: student1@example.com
+                  phone_number: +1-555-0000
+                  password: password123
+                  password_confirmation: password123
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and get a Sanctum token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              student:
+                value:
+                  email: student@example.com
+                  password: password
+                  device_name: postman
+              teacher:
+                value:
+                  email: teacher@example.com
+                  password: password
+                  device_name: postman
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          description: Invalid credentials or validation error
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (revoke current token)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/courses:
+    get:
+      tags: [Courses]
+      summary: List courses (paginated)
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            default: ''
+          description: Filter by title/description substring.
+        - name: tag
+          in: query
+          required: false
+          schema:
+            type: string
+            default: ''
+          description: Filter by tag slug or name.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCourses'
+
+  /api/courses/{courseId}:
+    get:
+      tags: [Courses]
+      summary: Course details (public, always locked video links)
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/courses/{courseId}/content:
+    get:
+      tags: [Courses]
+      summary: Course content (videos unlocked for teacher or approved students)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/courses/{courseId}/enroll:
+    post:
+      tags: [Enrollments]
+      summary: Request enrollment (student)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentRequestResponse'
+        '200':
+          description: Already requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/me/enrollments:
+    get:
+      tags: [Enrollments]
+      summary: List my enrollments (student)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyEnrollmentsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/teacher/enrollments:
+    get:
+      tags: [Enrollments]
+      summary: List enrollments for teacher-owned courses
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, declined]
+          description: Optional status filter.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherEnrollmentsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/teacher/enrollments/{enrollmentId}/approve:
+    post:
+      tags: [Enrollments]
+      summary: Approve an enrollment (teacher)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentReviewResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/teacher/enrollments/{enrollmentId}/decline:
+    post:
+      tags: [Enrollments]
+      summary: Decline an enrollment (teacher)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentReviewResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/me/courses:
+    get:
+      tags: [Dashboards]
+      summary: List approved courses for authenticated student
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentCoursesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/teacher/dashboard:
+    get:
+      tags: [Dashboards]
+      summary: Teacher dashboard (courses + pending enrollment request counts)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherDashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/me/notifications:
+    get:
+      tags: [Notifications]
+      summary: List my latest notifications (up to 50)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/me/notifications/{notificationId}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Notification id (UUID-like string).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Token
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MessageResponse'
+          examples:
+            unauthorized:
+              value:
+                message: Unauthenticated.
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MessageResponse'
+
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MessageResponse'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          nullable: true
+        password:
+          type: string
+          minLength: 8
+        password_confirmation:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        device_name:
+          type: string
+          nullable: true
+          description: Optional token name stored by Sanctum (useful for per-device token management).
+
+    AuthTokenResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+          description: Sanctum personal access token.
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required: [id, name, email, phone_number, role]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [student, teacher, admin]
+
+    CourseSummary:
+      type: object
+      required: [id, image_url, title, description, demo_url, curriculum_url, teacher, tags]
+      properties:
+        id:
+          type: integer
+        image_url:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        demo_url:
+          type: string
+          nullable: true
+        curriculum_url:
+          type: string
+          nullable: true
+        teacher:
+          $ref: '#/components/schemas/User'
+        tags:
+          type: array
+          items:
+            type: string
+
+    CourseObjective:
+      type: object
+      required: [id, position, objective]
+      properties:
+        id:
+          type: integer
+        position:
+          type: integer
+        objective:
+          type: string
+
+    CourseVideo:
+      type: object
+      required: [id, serial_number, title, description, is_locked, video_url]
+      properties:
+        id:
+          type: integer
+        serial_number:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        is_locked:
+          type: boolean
+        video_url:
+          type: string
+          nullable: true
+
+    CourseProject:
+      type: object
+      required: [id, title, description, project_url]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        project_url:
+          type: string
+          nullable: true
+
+    CourseTool:
+      type: object
+      required: [id, name, url, description]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        url:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+
+    CourseDetail:
+      type: object
+      required:
+        - id
+        - image_url
+        - title
+        - description
+        - demo_url
+        - curriculum_url
+        - teacher
+        - tags
+        - objectives
+        - videos
+        - projects
+        - tools
+      properties:
+        id:
+          type: integer
+        image_url:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        demo_url:
+          type: string
+          nullable: true
+        curriculum_url:
+          type: string
+          nullable: true
+        teacher:
+          $ref: '#/components/schemas/User'
+        tags:
+          type: array
+          items:
+            type: string
+        objectives:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseObjective'
+        videos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseVideo'
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseProject'
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseTool'
+
+    PaginatedCourses:
+      type: object
+      required: [data, links, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseSummary'
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginationLinks:
+      type: object
+      required: [first, last, prev, next]
+      properties:
+        first:
+          type: string
+          nullable: true
+        last:
+          type: string
+          nullable: true
+        prev:
+          type: string
+          nullable: true
+        next:
+          type: string
+          nullable: true
+
+    PaginationMeta:
+      type: object
+      required:
+        - current_page
+        - from
+        - last_page
+        - links
+        - path
+        - per_page
+        - to
+        - total
+      properties:
+        current_page:
+          type: integer
+        from:
+          type: integer
+          nullable: true
+        last_page:
+          type: integer
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaginationMetaLink'
+        path:
+          type: string
+        per_page:
+          type: integer
+        to:
+          type: integer
+          nullable: true
+        total:
+          type: integer
+
+    PaginationMetaLink:
+      type: object
+      required: [url, label, active]
+      properties:
+        url:
+          type: string
+          nullable: true
+        label:
+          type: string
+        active:
+          type: boolean
+        page:
+          type: integer
+          nullable: true
+
+    EnrollmentStatus:
+      type: string
+      enum: [pending, approved, declined]
+
+    EnrollmentRequestResponse:
+      type: object
+      required: [message, enrollment]
+      properties:
+        message:
+          type: string
+        enrollment:
+          type: object
+          required: [id, status]
+          properties:
+            id:
+              type: integer
+            status:
+              $ref: '#/components/schemas/EnrollmentStatus'
+
+    MyEnrollmentsResponse:
+      type: object
+      required: [enrollments]
+      properties:
+        enrollments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyEnrollment'
+
+    MyEnrollment:
+      type: object
+      required: [id, status, reviewed_at, course]
+      properties:
+        id:
+          type: integer
+        status:
+          $ref: '#/components/schemas/EnrollmentStatus'
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        course:
+          $ref: '#/components/schemas/MyEnrollmentCourse'
+
+    MyEnrollmentCourse:
+      type: object
+      required: [id, title, image_url, teacher, tags]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        teacher:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    TeacherEnrollmentsResponse:
+      type: object
+      required: [enrollments]
+      properties:
+        enrollments:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeacherEnrollment'
+
+    TeacherEnrollment:
+      type: object
+      required: [id, status, created_at, reviewed_at, course, student]
+      properties:
+        id:
+          type: integer
+        status:
+          $ref: '#/components/schemas/EnrollmentStatus'
+        created_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        course:
+          type: object
+          required: [id, title]
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+        student:
+          type: object
+          required: [id, name, email, phone_number]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+            phone_number:
+              type: string
+              nullable: true
+
+    EnrollmentReviewResponse:
+      type: object
+      required: [message, enrollment]
+      properties:
+        message:
+          type: string
+        enrollment:
+          type: object
+          required: [id, status, reviewed_at]
+          properties:
+            id:
+              type: integer
+            status:
+              $ref: '#/components/schemas/EnrollmentStatus'
+            reviewed_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    StudentCoursesResponse:
+      type: object
+      required: [courses]
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentCourse'
+
+    StudentCourse:
+      type: object
+      required: [id, image_url, title, description, demo_url, curriculum_url, teacher, tags]
+      properties:
+        id:
+          type: integer
+        image_url:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        demo_url:
+          type: string
+          nullable: true
+        curriculum_url:
+          type: string
+          nullable: true
+        teacher:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    TeacherDashboardResponse:
+      type: object
+      required: [courses]
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeacherDashboardCourse'
+
+    TeacherDashboardCourse:
+      type: object
+      required:
+        - id
+        - image_url
+        - title
+        - description
+        - demo_url
+        - curriculum_url
+        - tags
+        - pending_enrollment_requests_count
+      properties:
+        id:
+          type: integer
+        image_url:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        demo_url:
+          type: string
+          nullable: true
+        curriculum_url:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        pending_enrollment_requests_count:
+          type: integer
+
+    NotificationsResponse:
+      type: object
+      required: [notifications]
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+
+    Notification:
+      type: object
+      required: [id, type, data, read_at, created_at]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
