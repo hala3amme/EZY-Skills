@@ -75,6 +75,8 @@ Course includes:
 
 ## API overview
 
+For an endpoint-by-endpoint guide (parameters, required ids, and the recommended Postman flow), see: `docs/API.md`.
+
 Base URL: `/api`
 
 ### Auth

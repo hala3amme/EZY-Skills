@@ -1,6 +1,7 @@
 {
   "info": {
     "name": "EZY Skills API",
+    "description": "Laravel REST API for EZY Skills. Set collection variables (baseUrl, token, teacherToken, courseId) before running requests. See docs/API.md for a step-by-step guide.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -9,6 +10,7 @@
       "item": [
         {
           "name": "Register",
+          "description": "Create a student account. Body params: name, email, phone_number (optional), password, password_confirmation.",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -21,6 +23,7 @@
         },
         {
           "name": "Login",
+          "description": "Login and receive a Sanctum token. Body params: email, password, device_name (optional). Copy token into collection variable {{token}}.",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -33,6 +36,7 @@
         },
         {
           "name": "Me",
+          "description": "Get the currently authenticated user. Requires Authorization: Bearer {{token}}.",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -41,6 +45,7 @@
         },
         {
           "name": "Logout",
+          "description": "Logout by revoking the current token. Requires Authorization: Bearer {{token}}.",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -54,6 +59,7 @@
       "item": [
         {
           "name": "List courses",
+          "description": "List courses (paginated). Optional query params: search, tag (slug or name).",
           "request": {
             "method": "GET",
             "url": {
@@ -69,6 +75,7 @@
         },
         {
           "name": "Course details",
+          "description": "Public course details (video links are always locked here). Set {{courseId}} first.",
           "request": {
             "method": "GET",
             "url": { "raw": "{{baseUrl}}/api/courses/{{courseId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "{{courseId}}"] }
@@ -76,6 +83,7 @@
         },
         {
           "name": "Course content (locked/unlocked)",
+          "description": "Course content endpoint. Video links are unlocked only for the course teacher or approved students. Requires Authorization: Bearer {{token}}.",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -89,6 +97,7 @@
       "item": [
         {
           "name": "Request enrollment (student)",
+          "description": "Student requests enrollment for a course (no body). Requires Authorization: Bearer {{token}}. Response includes enrollment.id (use it as {{enrollmentId}}).",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -97,6 +106,7 @@
         },
         {
           "name": "My enrollments (student)",
+          "description": "List the authenticated student's enrollments. Requires Authorization: Bearer {{token}}.",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -105,6 +115,7 @@
         },
         {
           "name": "Teacher enrollments",
+          "description": "List enrollments for courses owned by the authenticated teacher. Requires Authorization: Bearer {{teacherToken}}. Use the returned enrollments[].id as {{enrollmentId}}.",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
@@ -118,6 +129,7 @@
         },
         {
           "name": "Approve enrollment (teacher)",
+          "description": "Approve an enrollment request. Requires Authorization: Bearer {{teacherToken}}. Set {{enrollmentId}} first.",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
@@ -126,6 +138,7 @@
         },
         {
           "name": "Decline enrollment (teacher)",
+          "description": "Decline an enrollment request. Requires Authorization: Bearer {{teacherToken}}. Set {{enrollmentId}} first.",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
@@ -139,6 +152,7 @@
       "item": [
         {
           "name": "Student courses",
+          "description": "List approved courses for the authenticated student. Requires Authorization: Bearer {{token}}.",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -147,6 +161,7 @@
         },
         {
           "name": "Teacher dashboard",
+          "description": "Teacher dashboard: courses + pending enrollment request counts. Requires Authorization: Bearer {{teacherToken}}.",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
@@ -160,6 +175,7 @@
       "item": [
         {
           "name": "My notifications",
+          "description": "List latest notifications for the authenticated user (up to 50). Requires Authorization. Teacher token is typically used here.",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
@@ -168,6 +184,7 @@
         },
         {
           "name": "Mark notification as read",
+          "description": "Mark a notification as read. Requires Authorization. Set {{notificationId}} from the My notifications response.",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
@@ -178,11 +195,11 @@
     }
   ],
   "variable": [
-    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
-    { "key": "token", "value": "" },
-    { "key": "teacherToken", "value": "" },
-    { "key": "courseId", "value": "1" },
-    { "key": "enrollmentId", "value": "1" },
-    { "key": "notificationId", "value": "" }
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "description": "API base URL (no trailing slash)." },
+    { "key": "token", "value": "", "description": "Student Sanctum token. Get it from /api/auth/login or from `php artisan ezy:dev-tokens --reset`." },
+    { "key": "teacherToken", "value": "", "description": "Teacher Sanctum token. Get it from `php artisan ezy:dev-tokens --reset`." },
+    { "key": "courseId", "value": "1", "description": "Course id to use in requests. Use seeded course id or output from `php artisan ezy:dev-tokens --reset`." },
+    { "key": "enrollmentId", "value": "", "description": "Enrollment id. Get it from the enrollment request response or from teacher enrollments." },
+    { "key": "notificationId", "value": "", "description": "Notification id. Get it from the notifications list response." }
   ]
 }

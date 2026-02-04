@@ -99,6 +99,7 @@ Base API URL: `http://127.0.0.1:8000/api`
 ## Documentation
 
 - Technical documentation: `docs/TECHNICAL.md`
+- API usage (Postman collection guide): `docs/API.md`
 
 ## Roadmap ideas (later phases)
 
