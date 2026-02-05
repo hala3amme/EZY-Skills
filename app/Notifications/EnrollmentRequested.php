@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\CourseEnrollment;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 class EnrollmentRequested extends Notification
@@ -22,7 +23,17 @@ class EnrollmentRequested extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toArray($notifiable));
+    }
+
+    public function broadcastType(): string
+    {
+        return 'enrollment_requested';
     }
 
     /**

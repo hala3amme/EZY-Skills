@@ -6,6 +6,10 @@ info:
 
     Auth uses Laravel Sanctum personal access tokens.
     Send the token as: `Authorization: Bearer <token>`.
+
+    WebSockets:
+    This OpenAPI document describes the HTTP endpoints only. Real-time notification delivery
+    happens over WebSockets using Laravel broadcasting (Reverb) and a client listener (Laravel Echo).
   version: 1.0.0
 servers:
   - url: http://127.0.0.1:8000
@@ -17,8 +21,71 @@ tags:
   - name: Enrollments
   - name: Dashboards
   - name: Notifications
+  - name: Broadcasting
 
 paths:
+  /broadcasting/auth:
+    post:
+      tags: [Broadcasting]
+      summary: Authorize a private broadcast channel subscription
+      description: |
+        Used by Laravel Echo to authorize subscriptions to private channels.
+        Requires a valid Sanctum token.
+
+        Note: This endpoint is not under the `/api` prefix.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [socket_id, channel_name]
+              properties:
+                socket_id:
+                  type: string
+                  description: Echo/Pusher socket id (e.g. 1234.5678)
+                channel_name:
+                  type: string
+                  description: Private channel name (e.g. private-App.Models.User.1)
+            examples:
+              private_user_channel:
+                value:
+                  socket_id: 1234.5678
+                  channel_name: private-App.Models.User.1
+          application/json:
+            schema:
+              type: object
+              required: [socket_id, channel_name]
+              properties:
+                socket_id:
+                  type: string
+                channel_name:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [auth]
+                properties:
+                  auth:
+                    type: string
+                    description: Authorization signature
+                  channel_data:
+                    type: string
+                    nullable: true
+                    description: Optional channel data (Pusher protocol)
+              examples:
+                ok:
+                  value:
+                    auth: "app-key:signature"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/auth/register:
     post:
       tags: [Auth]

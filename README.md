@@ -12,6 +12,7 @@ This repository is structured as a mono-repo. Today it contains the backend API;
 - **Enrollment workflow**:
 	- Student requests enrollment
 	- Teacher receives a **database notification**
+	- Teacher can also receive the notification in **real-time over WebSockets** (Laravel broadcasting)
 	- Teacher approves/declines
 	- Course content links are **locked** until enrollment is approved (or you’re the teacher)
 - **Dashboards**: basic endpoints for student and teacher views.
@@ -81,6 +82,28 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 Base API URL: `http://127.0.0.1:8000/api`
 
+### 5.1) (Optional) Real-time notifications (WebSockets)
+
+This project supports broadcasting notifications to a React SPA using Laravel broadcasting.
+
+- Default is disabled (`BROADCAST_CONNECTION=log`).
+- To enable WebSockets locally, use **Laravel Reverb**:
+
+```bash
+composer require laravel/reverb
+php artisan reverb:install
+```
+
+Then set `BROADCAST_CONNECTION=reverb` in `.env` and start the server:
+
+```bash
+php artisan reverb:start
+```
+
+The React SPA will use `POST /broadcasting/auth` (Bearer token) to authorize private channel subscriptions.
+
+See `docs/TECHNICAL.md` for the channel name, auth route, and SPA listener notes.
+
 ### 6) Run tests
 
 ```bash
@@ -105,6 +128,6 @@ Base API URL: `http://127.0.0.1:8000/api`
 
 - Teacher course management (CRUD)
 - Admin portal
-- Real-time notifications (broadcasting)
+- Real-time notifications UI in a frontend/admin portal
 - Social login
 - Chatbot/course recommendation flows

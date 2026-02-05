@@ -264,6 +264,26 @@ Headers:
 Success: `200`
 - Returns `{ notifications: [...] }`
 
+##### Optional: real-time notifications over WebSockets
+
+In addition to fetching notifications via REST, notifications can be delivered in real-time via Laravel broadcasting.
+
+- Private channel: `private-App.Models.User.{id}`
+- Auth endpoint used by Echo for private channels: `POST /broadcasting/auth`
+  - Must include `Authorization: Bearer <token>` (Sanctum)
+
+Note: `/broadcasting/auth` is now documented in `openapi.yaml` to support typed clients.
+
+When listening with Echo, use the notification helper:
+
+```js
+echo.private(`App.Models.User.${user.id}`).notification((payload) => {
+  // payload contains the notification data + id/type
+});
+```
+
+For `EnrollmentRequested`, the broadcasted payload type is `"enrollment_requested"`.
+
 #### POST `/api/me/notifications/{notificationId}/read` (auth)
 Marks a notification as read.
 
