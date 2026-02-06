@@ -77,6 +77,13 @@ Some requests require ids that you obtain from earlier responses (and the collec
 - `notificationId`
   - Auto-set by Notifications → **My notifications** (first item)
 
+Additional variables used by the broadcasting request:
+
+- `userId`
+  - Auto-set by Auth → **Register**, **Login**, **Login (Teacher)**, or **Me**
+- `socketId`
+  - Dummy example socket id used by Broadcasting → **Authorize private channel** (Echo will send a real value at runtime)
+
 ## 4) Endpoints and parameters
 
 Base prefix: `/api`

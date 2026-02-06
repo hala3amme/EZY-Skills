@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "EZY Skills API",
-    "description": "Laravel REST API for EZY Skills. Set collection variables (baseUrl, token, teacherToken, courseId) before running requests. See docs/API.md for a step-by-step guide.",
+    "description": "Laravel REST API for EZY Skills. Set collection variables (baseUrl, token, teacherToken, courseId) before running requests. See docs/API.md for a step-by-step guide.\n\nBroadcasting:\n- Use Broadcasting → Authorize private channel to test POST /broadcasting/auth (Echo private channel auth).\n- Requires Authorization: Bearer <token>. Channel name uses private-App.Models.User.{{userId}}.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -18,7 +18,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json && json.token) { pm.collectionVariables.set('token', json.token); }"
+                  "if (json && json.token) { pm.collectionVariables.set('token', json.token); }",
+                  "const userId = json && json.user && json.user.id;",
+                  "if (userId != null) { pm.collectionVariables.set('userId', String(userId)); }"
                 ]
               }
             }
@@ -43,7 +45,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json && json.token) { pm.collectionVariables.set('token', json.token); }"
+                  "if (json && json.token) { pm.collectionVariables.set('token', json.token); }",
+                  "const userId = json && json.user && json.user.id;",
+                  "if (userId != null) { pm.collectionVariables.set('userId', String(userId)); }"
                 ]
               }
             }
@@ -68,7 +72,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json && json.token) { pm.collectionVariables.set('teacherToken', json.token); }"
+                  "if (json && json.token) { pm.collectionVariables.set('teacherToken', json.token); }",
+                  "const userId = json && json.user && json.user.id;",
+                  "if (userId != null) { pm.collectionVariables.set('userId', String(userId)); }"
                 ]
               }
             }
@@ -86,6 +92,19 @@
         {
           "name": "Me",
           "description": "Get the currently authenticated user. Requires Authorization: Bearer {{token}}.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const userId = json && json.user && json.user.id;",
+                  "if (userId != null) { pm.collectionVariables.set('userId', String(userId)); }"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -101,7 +120,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.unset('token');"
+                  "pm.collectionVariables.unset('token');",
+                  "pm.collectionVariables.unset('userId');"
                 ]
               }
             }
@@ -121,7 +141,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.unset('teacherToken');"
+                  "pm.collectionVariables.unset('teacherToken');",
+                  "pm.collectionVariables.unset('userId');"
                 ]
               }
             }
@@ -324,12 +345,38 @@
           }
         }
       ]
+    },
+    {
+      "name": "Broadcasting",
+      "item": [
+        {
+          "name": "Authorize private channel",
+          "description": "Authorize a private channel subscription (Echo/Pusher protocol). Requires Authorization. Uses {{userId}} to build channel_name and {{socketId}} as the socket id.",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "socket_id", "value": "{{socketId}}", "type": "text" },
+                { "key": "channel_name", "value": "private-App.Models.User.{{userId}}", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/broadcasting/auth", "host": ["{{baseUrl}}"], "path": ["broadcasting", "auth"] }
+          }
+        }
+      ]
     }
   ],
   "variable": [
     { "key": "baseUrl", "value": "http://127.0.0.1:8000", "description": "API base URL (no trailing slash)." },
     { "key": "token", "value": "", "description": "Student Sanctum token. Auto-set by Auth → Login, or set manually from `php artisan ezy:dev-tokens --reset`." },
     { "key": "teacherToken", "value": "", "description": "Teacher Sanctum token. Auto-set by Auth → Login (Teacher), or set manually from `php artisan ezy:dev-tokens --reset`." },
+    { "key": "userId", "value": "", "description": "Authenticated user id. Auto-set by Auth requests (Register/Login/Me). Used for Broadcasting channel_name." },
+    { "key": "socketId", "value": "1234.5678", "description": "Echo/Pusher socket id (example). Used by Broadcasting → Authorize private channel." },
     { "key": "courseId", "value": "1", "description": "Course id to use in requests. Auto-set by Courses → List courses (first item), or set from `php artisan ezy:dev-tokens --reset`." },
     { "key": "enrollmentId", "value": "", "description": "Enrollment id. Auto-set by Request enrollment (student) or Teacher enrollments (first item)." },
     { "key": "notificationId", "value": "", "description": "Notification id. Auto-set by My notifications (first item)." }
