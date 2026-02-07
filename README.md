@@ -100,6 +100,13 @@ Then set `BROADCAST_CONNECTION=reverb` in `.env` and start the server:
 php artisan reverb:start
 ```
 
+Important:
+- Broadcast notifications are queued in this project (`QUEUE_CONNECTION=database` by default). For realtime notifications to appear, also run a queue worker:
+
+```bash
+php artisan queue:work --tries=1 --timeout=0
+```
+
 The React SPA will use `POST /broadcasting/auth` (Bearer token) to authorize private channel subscriptions.
 
 See `docs/TECHNICAL.md` for the channel name, auth route, and SPA listener notes.

@@ -200,6 +200,77 @@ Notes:
 - For API parity, you can still call `GET /api/me/notifications` on page load, then merge in live updates from WebSockets.
 - Broadcast notifications include an `id` and a `type` field. In this project, `EnrollmentRequested` broadcasts with `type: "enrollment_requested"`.
 
+### Troubleshooting (what was missing + how we fixed it)
+
+This section captures the most common local dev issues we hit while wiring the SPA to Reverb.
+
+#### 1) Browser shows CORS error on `POST /broadcasting/auth`
+
+Symptom:
+- Browser console/network shows a CORS failure on `http://127.0.0.1:8000/broadcasting/auth` when subscribing to a private channel.
+
+Root cause:
+- The default Laravel CORS settings typically cover `api/*` and `sanctum/csrf-cookie`, but do **not** necessarily include `broadcasting/auth`.
+
+Fix:
+- Add a CORS config that includes `broadcasting/auth` and allows the Vite origin with credentials.
+- In this repo we fixed it by adding `config/cors.php` with:
+  - `paths`: `api/*`, `sanctum/csrf-cookie`, `broadcasting/auth`
+  - `allowed_origins`: `http://localhost:5173`, `http://127.0.0.1:5173`
+  - `supports_credentials`: `true`
+- Clear cached config:
+
+```bash
+php artisan config:clear
+```
+
+#### 2) Enrollment saves to DB but no realtime notification appears
+
+Symptom:
+- Student enrollment request creates the `course_enrollments` record correctly.
+- Teacher sees no live notification, even though WebSocket connection/auth looks OK.
+
+Root cause:
+- Laravel broadcast notifications are **queued**. The framework event that broadcasts notifications (`BroadcastNotificationCreated`) implements `ShouldBroadcast` and uses `Queueable`.
+- If `QUEUE_CONNECTION` is not `sync` (this repo uses `database` by default), you must have a queue worker running.
+
+Fix:
+- Start a queue worker in another terminal:
+
+```bash
+php artisan queue:work --tries=1 --timeout=0
+```
+
+Verification tip:
+- If you suspect this, check the `jobs` table; queued broadcasts will pile up until a worker drains them.
+
+#### 3) “Correct socket” / key mismatch between frontend and backend
+
+Symptom:
+- Socket connects but private channel auth / notifications never arrive.
+- Frontend silently uses `local` (or stale env) while backend uses a different `REVERB_APP_KEY`.
+
+Fix:
+- Ensure the frontend’s `VITE_REVERB_*` values match the backend `REVERB_*` values exactly (host/port/scheme/app key).
+- Avoid fallbacks that accidentally default to `local`.
+- Restart Vite after changing any `.env.local` / `.env` variables.
+- Never expose `REVERB_APP_SECRET` to the frontend (only the app key is expected client-side).
+
+#### Recommended local run checklist
+
+In separate terminals:
+
+```bash
+# API
+php artisan serve --host=127.0.0.1 --port=8000
+
+# WebSockets
+php artisan reverb:start
+
+# Queue worker (required for broadcast notifications)
+php artisan queue:work --tries=1 --timeout=0
+```
+
 ## Notes for later phases
 
 - Admin portal and teacher course management can be layered on top of the existing models and roles.
